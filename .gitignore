@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Node
+node_modules/
+dist/
+
+# Secrets and local overrides. .env.example stays tracked.
+.env
+.env.*
+!.env.example
+
+# Market data. download_update_data() rewrites these CSVs on every run, so
+# tracking them would dirty the working tree each time you run the framework.
+# Delete this line if you would rather the repo be reproducible offline.
+framework/historical_data/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

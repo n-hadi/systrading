@@ -13,6 +13,10 @@ dist/
 .env.*
 !.env.example
 
+# Your own configuration: capital, instruments, risk settings. The setup form
+# writes it on first run, seeded from DEFAULTS in settings.py.
+framework/config.json
+
 # Market data. download_update_data() rewrites these CSVs on every run, so
 # tracking them would dirty the working tree each time you run the framework.
 # Delete this line if you would rather the repo be reproducible offline.

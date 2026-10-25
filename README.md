@@ -34,7 +34,9 @@ annual cost against his 0.13 speed limit, and the maximum possible position in b
 Those are read-only — nothing in the simulation acts on them.
 
 ## Running it
-
+create a virtualenvironment for the python backend (within the framework/ folder), activate it and install the requirements.txt
+"pip install -r requirements.txt". 
+then youre ready to go. from the root folder do:
 ```bash
 cd framework && python run.py      # downloads data, builds, serves on :8765
 cd frontend  && npm run dev        # dashboard

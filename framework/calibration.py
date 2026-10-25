@@ -1,5 +1,6 @@
 import pandas as pd
-from settings import VOLATILITY_WINDOW, RULES, INSTRUMENTS
+from settings import (VOLATILITY_WINDOW, RULES, INSTRUMENTS,
+                      FC_WEIGHTS, FC_DIV_MP, SSP_DIV_MP)
 
 
 ### Forecast scalars ###
@@ -33,14 +34,12 @@ def calc_placeholder_fc_scalar(df, rule):
     return fc_scalar
 
 
-#### forecast weights ### 
-fc_weights = {
-    "ewmac": 0.6,
-    "rsi_mr": 0.4
-}
+#### forecast weights ###
+fc_weights = FC_WEIGHTS
+
 
 ###  Forecast Diversifications multiplier ###
-fc_div_mp = 1.1 
+fc_div_mp = FC_DIV_MP
 
 
 ### Subsystem position weights ###
@@ -48,4 +47,4 @@ ssp_weight = 1/len(INSTRUMENTS)
 
 
 ### Subsystem diversification mulitiplier ###
-ssp_div_mp = 1.15
+ssp_div_mp = SSP_DIV_MP

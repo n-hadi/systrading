@@ -9,6 +9,7 @@ def get_parameters(fc_scalar_calc_basis):
     params = {
 
         ## settings ##
+        "label": settings.LABEL,
         "amount_instruments": len(settings.INSTRUMENTS),
         "volatility_target": settings.VOLATILITY_TARGET,
         "volatility_window": settings.VOLATILITY_WINDOW,
@@ -17,7 +18,7 @@ def get_parameters(fc_scalar_calc_basis):
         "end_date": settings.END_DATE,
         "trading_rules": settings.RULES,
         "windows": settings.WINDOWS,
-        "fee_per_trade": settings.FEE_PER_TRADE,
+        "annualisation": settings.ANNUALISATION,
 
         ## calibration ##
         "fc_scalars": calibration.get_placeholder_fc_scalars(fc_scalar_calc_basis),

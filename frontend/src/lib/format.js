@@ -4,7 +4,7 @@
 
 export const CO = {
   text: '#e9e9ed', mute: '#75798c', dim: '#9397ab', grid: 'rgba(233,233,237,0.07)',
-  axis: 'rgba(233,233,237,0.22)', a: '#9184d9', a3: '#d2cefd', a4: '#b5abfc',
+  axis: 'rgba(233,233,237,0.22)', panel: '#1b1d2c', a: '#9184d9', a3: '#d2cefd', a4: '#b5abfc',
   a5: '#968ae0', a6: '#796cbf', a7: '#5d5294', a8: '#423a6a', n6: '#75798c', n7: '#595d6c', n8: '#3f424d',
 };
 
@@ -17,6 +17,7 @@ export const nn = (v) => v !== null && v !== undefined && Number.isFinite(v);
 export const PANEL_W = {
   fc: 520, corr: 496, dd: 1000, pvol: 604, summary: 1100, trades: 528,
   capital: 508, pnl: 1000, cum: 612, hist: 600, fchist: 600, exposure: 508,
+  costs: 1616,
 };
 
 /** [i0, i1] — the trailing `bars` rows of `n`. The backend sends the window

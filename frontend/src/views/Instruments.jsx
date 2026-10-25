@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   ComposedChart, LineChart, AreaChart, BarChart, Area, Line, Bar, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
+  XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ReferenceDot,
 } from 'recharts';
 
 import { CO, nn, f, windowRange, rows } from '../lib/format.js';
@@ -21,6 +21,24 @@ function fmtCell(col, v) {
     return f.n(v, 0);
   }
   return f.n(v, 2);
+}
+
+/* Marks for the locked bar. Recharts only paints its crosshair while the
+   pointer is inside a chart, so a lock has to draw its own: a vertical line at
+   the locked date plus a dot on each visible series. These are returned as a
+   plain array of Recharts elements rather than a component, because a chart
+   only recognises <ReferenceLine>/<ReferenceDot> as its direct children — and
+   being children is what makes them use that chart's own scales.
+   `row` is the locked row of the same data the chart was given, so a dot can
+   never land on a value the chart is not plotting. */
+function lockMarks(row, series = []) {
+  if (!row) return null;
+  return [
+    <ReferenceLine key="line" x={row.Date} stroke={CO.a3} strokeDasharray="3 3" />,
+    ...series.filter(({ k }) => nn(row[k])).map(({ k, c }) => (
+      <ReferenceDot key={k} x={row.Date} y={row[k]} r={3} fill={c} stroke={CO.panel} strokeWidth={1.5} />
+    )),
+  ];
 }
 
 /* One readout field. At module scope so it is not redefined every render. */
@@ -75,6 +93,9 @@ export default function Instruments({ data, win, setWin }) {
     onMouseLeave: () => onHover(null),
     onClick: (st) => { const k = activeIndex(st); if (k !== null) onPick(i0 + k); },
   }), [i0, onHover, onPick]);
+
+  // position of the locked bar within the windowed chart data
+  const lockedAt = nn(lock) && lock >= i0 && lock <= i1 ? lock - i0 : null;
 
   const V = (col) => (df[col] ? df[col][hv] : null);
   const prev = (col) => (hv > 0 && df[col] ? df[col][hv - 1] : null);
@@ -209,6 +230,10 @@ export default function Instruments({ data, win, setWin }) {
             <Line key={o.key} name={o.label} dataKey={o.key} stroke={o.c} strokeWidth={1.2} {...CURVE} />
           ))}
           <Line name="Close" dataKey="Close" stroke={CO.text} strokeWidth={1.3} {...CURVE} />
+          {lockedAt !== null && lockMarks(chartRows.price[lockedAt], [
+            { k: 'Close', c: CO.text },
+            ...overlays.filter((o) => o.key !== 'bb' && isOn(o.key)).map((o) => ({ k: o.key, c: o.c })),
+          ])}
         </ComposedChart>
       </div>
 
@@ -229,6 +254,8 @@ export default function Instruments({ data, win, setWin }) {
           {fcDefs.filter((d) => fcShown.includes(d.k)).map((d) => (
             <Line key={d.k} dataKey={d.k} stroke={d.c} strokeWidth={d.width} {...CURVE} />
           ))}
+          {lockedAt !== null && lockMarks(chartRows.fc[lockedAt],
+            fcDefs.filter((d) => fcShown.includes(d.k)).map((d) => ({ k: d.k, c: d.c })))}
         </LineChart>
         <div className="stats" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
           <span className="readout-label" style={{ marginBottom: 0, marginRight: 2 }}>Series</span>
@@ -258,6 +285,7 @@ export default function Instruments({ data, win, setWin }) {
           <YAxis {...AXIS} width={52} tickFormatter={f.cash} />
           <Tooltip {...TOOLTIP} formatter={(v) => f.cash(v, true)} />
           <Area dataKey="exposure" stroke={CO.a4} strokeWidth={1.2} fill="rgba(145,132,217,.14)" {...CURVE} />
+          {lockedAt !== null && lockMarks(chartRows.exposure[lockedAt], [{ k: 'exposure', c: CO.a4 }])}
         </AreaChart>
       </div>
 
@@ -278,6 +306,10 @@ export default function Instruments({ data, win, setWin }) {
           <Tooltip {...TOOLTIP} formatter={(v) => f.n(v, 2)} />
           {sspOn && <Line dataKey="subsystem_pos" stroke={CO.a6} strokeWidth={1} strokeDasharray="3 2" {...CURVE} />}
           <Line type="stepAfter" dataKey="portfolio_pos" stroke={CO.a3} strokeWidth={1.3} {...CURVE} />
+          {lockedAt !== null && lockMarks(chartRows.position[lockedAt], [
+            ...(sspOn ? [{ k: 'subsystem_pos', c: CO.a6 }] : []),
+            { k: 'portfolio_pos', c: CO.a3 },
+          ])}
         </LineChart>
       </div>
 
@@ -292,6 +324,7 @@ export default function Instruments({ data, win, setWin }) {
           <YAxis {...AXIS} width={60} tickFormatter={f.cash} />
           <Tooltip {...TOOLTIP} formatter={(v) => f.cash(v, true)} />
           <Area name="cum_pnl" dataKey="cum_pnl" stroke={CO.a3} strokeWidth={1.4} fill="rgba(145,132,217,.13)" {...CURVE} />
+          {lockedAt !== null && lockMarks(chartRows.cum[lockedAt], [{ k: 'cum_pnl', c: CO.a3 }])}
         </AreaChart>
         <BarChart width={CHART_W} height={86} margin={MARGIN} {...ev} data={chartRows.pnl}>
           <CartesianGrid stroke="rgba(233,233,237,.07)" />
@@ -301,10 +334,11 @@ export default function Instruments({ data, win, setWin }) {
           <Bar name="pnl" dataKey="pnl" isAnimationActive={false}>
             {chartRows.pnl.map((r, k) => <Cell key={k} fill={(r.pnl || 0) >= 0 ? CO.a4 : CO.a7} />)}
           </Bar>
+          {lockedAt !== null && lockMarks(chartRows.pnl[lockedAt])}
         </BarChart>
       </div>
     </div>
-  ), [chartRows, inst, overlays, ov, fcShown, sspOn, ev]);
+  ), [chartRows, inst, overlays, ov, fcShown, sspOn, ev, lockedAt]);
 
   const volChart = useMemo(() => (
     <div className="panel tight">
@@ -318,9 +352,10 @@ export default function Instruments({ data, win, setWin }) {
         <YAxis {...AXIS} width={40} domain={[0, 'auto']} tickFormatter={(v) => (v * 100).toFixed(1) + '%'} />
         <Tooltip {...TOOLTIP} formatter={(v) => f.pct(v, 2)} />
         <Line name={volCol} dataKey="vol" stroke={CO.a4} strokeWidth={1.3} {...CURVE} />
+        {lockedAt !== null && lockMarks(chartRows.vol[lockedAt], [{ k: 'vol', c: CO.a4 }])}
       </LineChart>
     </div>
-  ), [chartRows, volCol, ev]);
+  ), [chartRows, volCol, ev, lockedAt]);
 
   return (
     <div>

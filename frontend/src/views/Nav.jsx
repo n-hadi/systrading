@@ -5,7 +5,7 @@ import { f, windowRange } from '../lib/format.js';
 /* Top bar: tabs, base currency, bar count and the calibration popover.
    The rule rows are built from parameters.trading_rules, so adding a rule in
    settings.py makes it appear here with no frontend change. */
-export default function Nav({ data, win, tab, setTab }) {
+export default function Nav({ data, win, tab, setTab, onSettings, portfolios, selected, setSelected, isMeta }) {
   const [calibOpen, setCalibOpen] = useState(false);
 
   const params = data?.portfolio?.parameters;
@@ -18,9 +18,10 @@ export default function Nav({ data, win, tab, setTab }) {
     bars = String(i1 - i0 + 1);
   }
 
-  const ruleNames = params ? Object.keys(params.trading_rules) : [];
+  // the meta view has no rules, scalars or cash vol target to calibrate
+  const ruleNames = params && !isMeta ? Object.keys(params.trading_rules) : [];
 
-  const rows = params ? [
+  const rows = params && !isMeta ? [
     ['Capital', f.money(params.start_capital.value)],
     ['Volatility target τ', f.pct(params.volatility_target, 0)],
     ['Volatility window', params.volatility_window + ' d'],
@@ -37,7 +38,7 @@ export default function Nav({ data, win, tab, setTab }) {
     ['Forecast div. multiplier', f.n(params.fc_div_mp, 2)],
     ['Subsystem weight', f.n(params.ssp_weight, 3)],
     ['Subsystem div. multiplier', f.n(params.ssp_div_mp, 2)],
-    ['Fee per trade', '$' + params.fee_per_trade.toFixed(2)],
+    ['Bars per year', String(params.annualisation)],
     ['Instruments', String(params.amount_instruments)],
     ['Simulated', params.start_date + ' → ' + params.end_date],
   ] : [];
@@ -46,9 +47,19 @@ export default function Nav({ data, win, tab, setTab }) {
     <div className="nav">
       <span className="nav-brand">Systrading</span>
 
+      <select className="select" value={selected} onChange={(e) => setSelected(e.target.value)}>
+        {portfolios.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+      </select>
+
       <div className="pillbox">
         <button className={'tab' + (tab === 'overview' ? ' on' : '')} onClick={() => setTab('overview')}>Overview</button>
-        <button className={'tab' + (tab === 'instruments' ? ' on' : '')} onClick={() => setTab('instruments')}>Instruments</button>
+        <button
+          className={'tab' + (tab === 'instruments' ? ' on' : '')}
+          disabled={isMeta} title={isMeta ? 'The meta view has no instruments of its own' : undefined}
+          onClick={() => setTab('instruments')}
+        >
+          Instruments
+        </button>
       </div>
 
       <div className="grow" />
@@ -57,7 +68,7 @@ export default function Nav({ data, win, tab, setTab }) {
         <span>Base&nbsp;<b>{currency}</b></span>
         <span>Bars&nbsp;<b>{bars}</b></span>
 
-        <span style={{ position: 'relative', display: 'inline-flex' }}>
+        {!isMeta && <span style={{ position: 'relative', display: 'inline-flex' }}>
           <button className={'calib-btn' + (calibOpen ? ' on' : '')} onClick={() => setCalibOpen(!calibOpen)}>
             Calibration
           </button>
@@ -76,12 +87,14 @@ export default function Nav({ data, win, tab, setTab }) {
               ))}
               <div className="popover-foot">
                 Forecast scalars are placeholder values calibrated on one instrument and shared across the
-                portfolio, per calibration.py. Costs are a flat placeholder charge per position change and
-                do not reduce capital.
+                portfolio, per calibration.py. Costs are half the estimated spread plus the instrument's own
+                fees, and they come out of capital, so they feed back into position sizing.
               </div>
             </div>
           )}
-        </span>
+        </span>}
+
+        <button className="calib-btn" onClick={onSettings}>Settings</button>
       </div>
     </div>
   );

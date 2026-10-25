@@ -272,7 +272,9 @@ export default function Overview({ data, win }) {
         <div className="card">
           <div className="card-label">Trading fees</div>
           <div className="card-value">{f.cash(-stats.cost)}</div>
-          <div className="card-sub">{stats.trades} trades @ ${params.fee_per_trade.toFixed(2)}</div>
+          <div className="card-sub">
+            {stats.trades} trades · ${(stats.trades ? stats.cost / stats.trades : 0).toFixed(2)} avg
+          </div>
         </div>
       </div>
 
@@ -632,6 +634,66 @@ export default function Overview({ data, win }) {
             { k: 'Range', v: f.pct(stats.vol_min, 1) + ' – ' + f.pct(stats.vol_max, 1) },
             { k: 'Bars over target', v: f.pct(stats.bars_over_target, 0), c: CO.dim },
           ]} />
+        </div>
+      </div>
+
+      {/* ── costs and speed ────────────────────────────────────────── */}
+      <div className="row">
+        <div className="panel" style={{ width: PANEL_W.costs }}>
+          <div className="panel-head baseline">
+            <span className="title">Costs and speed</span>
+            <span className="note">Carver speed limit · {win} window</span>
+            <span className="grow" />
+            <span className="note">read-only — nothing here changes the simulation</span>
+          </div>
+          <div className="costs-grid thead">
+            <span>Instrument</span>
+            <span className="r">Cost / trade</span>
+            <span className="r">Block vol, ann.</span>
+            <span className="r">Std cost</span>
+            <span className="r">Turnover</span>
+            <span className="r">Cost SR / yr</span>
+            <span className="r">Limit</span>
+            <span className="r">Max position</span>
+          </div>
+          {tickers.map((t) => {
+            const c = data.instruments[t].costs;
+            const costSr = c.cost_sr[win];
+            const overLimit = nn(costSr) && costSr > c.speed_limit;
+            // "4 blocks" means 4 of the smallest tradeable amount, which is a
+            // contract for futures but a fraction of a coin for a perp
+            const tooSmall = nn(c.max_position) && c.max_position / c.step < c.min_blocks;
+            return (
+              <div className="costs-grid trow" key={t}>
+                <div>
+                  <div className="ticker">{t}</div>
+                  <div className="subname">{data.instruments[t].name}</div>
+                </div>
+                <span className="r">{nn(c.cost_per_trade) ? '$' + c.cost_per_trade.toFixed(2) : '—'}</span>
+                <span className="r" style={{ color: CO.dim }}>
+                  {f.money(c.instr_value_vol * Math.sqrt(params.annualisation))}
+                </span>
+                <span className="r">{nn(c.standardised_cost[win]) ? c.standardised_cost[win].toFixed(5) : '—'}</span>
+                <span className="r" style={{ color: CO.dim }}>{f.n(c.turnover[win], 1)}</span>
+                <span className="r" style={{ color: overLimit ? CO.a3 : CO.text }}>
+                  {nn(costSr) ? costSr.toFixed(4) : '—'}
+                </span>
+                <span className="r" style={{ color: overLimit ? CO.a3 : CO.mute }}>
+                  {overLimit ? 'over ' + c.speed_limit : c.speed_limit.toFixed(2)}
+                </span>
+                <span className="r" style={{ color: tooSmall ? CO.a3 : CO.text }}>
+                  {f.n(c.max_position, c.step < 1 ? 3 : 1)}
+                  {tooSmall && <span className="subname"> under {c.min_blocks} steps</span>}
+                </span>
+              </div>
+            );
+          })}
+          <div className="note" style={{ paddingTop: 8 }}>
+            Standardised cost is a round trip in Sharpe ratio units: twice the cost of a one-block
+            trade over the annualised cash volatility of one block. Times turnover it is the Sharpe
+            ratio paid away in costs each year. Max position is what the system would hold at the
+            forecast cap of ±20.
+          </div>
         </div>
       </div>
     </div>
